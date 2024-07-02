@@ -1,4 +1,4 @@
-from model import Resnet,Linear
+from model import LSTM,Linear,GRU,RNN
 import torch
 from torch.utils.data import DataLoader
 import tqdm
@@ -12,11 +12,14 @@ def get_args():
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--max_len', type=int, default=100)
     parser.add_argument("--carrier_dim", type=int, default=52)
-    parser.add_argument("--correlation", action="store_true",default=False)
     parser.add_argument("--norm", action="store_true",default=False)
+    parser.add_argument('--predic_len', type=int, default=100)
+
 
     parser.add_argument("--data_path",type=str,default="./data/wiloc_linear.pkl")
     parser.add_argument('--train_prop', type=float, default=0.9)
+    parser.add_argument("--model", type=str, default='lstm')
+
 
     parser.add_argument("--cpu", action="store_true",default=False)
     parser.add_argument("--cuda", type=str, default='0')
@@ -26,7 +29,7 @@ def get_args():
     return args
 
 
-def iteration(data_loader,device,model,cls,optim,train=True,norm=False,correlation=False):
+def iteration(data_loader,device,model,cls,optim,train=True,norm=False,prediction_len=1):
     if train:
         model.train()
         cls.train()
@@ -38,27 +41,35 @@ def iteration(data_loader,device,model,cls,optim,train=True,norm=False,correlati
 
     loss_func=nn.MSELoss()
     loss_list = []
+    last_loss_list = []
+
+    loss_pos_list = []
+    loss_mse =  nn.MSELoss(reduction="none")
 
     pbar = tqdm.tqdm(data_loader, disable=False)
     for magnitude, _, x, y, _ in pbar:
         magnitude = magnitude.float().to(device)
         x = x.float().to(device)
         y = y.float().to(device)
-        x = x[:,-1]
-        y = y[:,-1]
+        x = x[:,-prediction_len:]
+        y = y[:,-prediction_len:]
 
         if norm:
             mean = torch.mean(magnitude, dim=-2, keepdim=True)
             std = torch.std(magnitude, dim=-2, keepdim=True)
             magnitude = (magnitude - mean) / (std + 1e-8)
-        if correlation:
-            magnitude = torch.matmul(magnitude.transpose(-1, -2), magnitude)
+
 
         output=cls(model(magnitude))
-        x_hat = output[...,0]
-        y_hat = output[...,1]
+        x_hat = output[...,:-prediction_len,0]
+        y_hat = output[...,:-prediction_len,1]
 
         loss = loss_func(x_hat, x) + loss_func(y_hat,y)
+        last_loss = loss_func(x_hat[:,-1], x[:,-1]) + loss_func(y_hat[:,-1], y[:,-1])
+
+        loss_pos = loss_mse(x_hat,x) + loss_func(y_hat,y)
+        loss_pos = torch.mean(loss_pos,dim=0,keepdim=True)
+        loss_pos_list.append(loss_pos.cpu().tolist())
 
         if train:
             model.zero_grad()
@@ -67,47 +78,62 @@ def iteration(data_loader,device,model,cls,optim,train=True,norm=False,correlati
             optim.step()
 
         loss_list.append(loss.item())
+        last_loss_list.append(last_loss.item())
 
-    return np.mean(loss_list)
+    return np.mean(loss_list), np.mean(last_loss_list), np.mean(loss_pos_list,axis=0)
 
 if __name__ == '__main__':
     args = get_args()
     device_name = "cuda:" + args.cuda
     device = torch.device(device_name if torch.cuda.is_available() and not args.cpu else 'cpu')
-    model = Resnet(channel=1).to(device)
+    if args.model == "lstm":
+        model = LSTM().to(device)
+    elif args.model == "rnn":
+        model = RNN().to(device)
+    elif args.model == "gru":
+        model = GRU().to(device)
+    else:
+        print("No such model!")
+        exit(-1)
     cls = Linear(output_dims=2).to(device)
     train_data, test_data = load_data(data_path=args.data_path, train_prop=args.train_prop, train_num=2000, test_num=200, length=args.max_len)
+
     train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
     test_loader = DataLoader(test_data, batch_size=args.batch_size, shuffle=True)
 
     optim = torch.optim.Adam(list(model.parameters()) + list(cls.parameters()), lr=args.lr, weight_decay=0.01)
 
     best_loss = 1e8
+    best_last_loss = 1e8
     loss_epoch = 0
     j = 0
 
     while True:
         j += 1
-        loss = iteration(train_loader, device, model, cls, optim, train=True, norm=args.norm, correlation=args.correlation)
-        log = "Epoch {:}, Train Loss {:06f}".format(j, loss)
+        loss, last_loss, _ = iteration(train_loader, device, model, cls, optim, train=True, norm=args.norm, prediction_len=args.prediction_len)
+        log = "Epoch {:}, Train Loss {:06f}, Train Last Loss {:06f}".format(j, loss, last_loss)
         print(log)
-        with open("Resnet.txt", 'a') as file:
+        with open("log.txt", 'a') as file:
             file.write(log)
-        loss = iteration(test_loader, device, model, cls, optim, train=False, norm=args.norm, correlation=args.correlation)
-        log = "Test Loss {:06f}".format(loss)
+        loss, last_loss, loss_pos_list = iteration(test_loader, device, model, cls, optim, train=False, norm=args.norm, prediction_len=args.prediction_len)
+        log = "Test Loss {:06f}, Test Last Loss {:06f}".format(loss, last_loss)
         print(log)
-        with open("Resnet.txt", 'a') as file:
+        with open("log.txt", 'a') as file:
             file.write(log + "\n")
         if loss < best_loss:
             best_loss = loss
             loss_epoch = 0
-            torch.save(cls.state_dict(), "Resnet_cls.pth")
-            torch.save(model.state_dict(), "Resnet_model.pth")
+            torch.save(cls.state_dict(), "cls.pth")
+            torch.save(model.state_dict(), "model.pth")
+            np.save("loss_pos_list.npy",loss_pos_list)
         else:
             loss_epoch += 1
+        if last_loss < best_last_loss:
+            best_last_loss = last_loss
         if loss_epoch >= args.epoch:
             print("Best Epoch {:}".format(loss_epoch))
             break
     print("Best Loss {:}".format(best_loss))
+    print("Best Last Loss {:}".format(best_last_loss))
 
 

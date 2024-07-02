@@ -2,6 +2,8 @@ import torch.nn as nn
 import torchvision.models as models
 import torch
 from transformers import BertModel,BertConfig
+import torch.nn.functional as F
+
 
 class Resnet(nn.Module):
     def __init__(self, output_dims=64, channel=1, pretrained=True, norm=False):
@@ -25,6 +27,33 @@ class Resnet(nn.Module):
             y=x
         y=self.batch_norm(y)
         return self.model(y)
+
+class CNN(nn.Module):
+    def __init__(self,channel=1, class_num=64):
+        super().__init__()
+        self.model=nn.Sequential(
+            nn.Conv2d(in_channels=channel, out_channels=32, kernel_size=(3, 3)),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=(2, 2)),
+            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 3)),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=(2, 2)),
+        )
+        self.Linear=nn.Sequential(
+            nn.Linear(64,64),
+            nn.ReLU(),
+            nn.Linear(64,class_num)
+        )
+        self.channel = channel
+
+    def forward(self,x):
+        if x.shape[1]!=self.channel:
+            x = torch.unsqueeze(x,dim=1)
+        x=self.model(x)
+        x=x.reshape(x.shape[0],-1)
+        x=x[:,:64]
+        x=self.Linear(x)
+        return x
 
 class CSIBERT(nn.Module):
     def __init__(self,bertconfig, input_dim=52):
@@ -155,6 +184,32 @@ class LSTM(nn.Module):
         y = self.fc(x)
         return y
 
+class RNN(nn.Module):
+    def __init__(self, output_dims=64,input_dim=52):
+        super().__init__()
+        self.rnn = nn.RNN(input_dim, 64, num_layers=4, batch_first=True)
+        self.fc = nn.Linear(64, output_dims)
+
+    def forward(self, x):
+        x, _ = self.rnn(x)
+        y = self.fc(x)
+        return y
+
+class GRU(nn.Module):
+    def __init__(self, output_dims=64,input_dim=52):
+        super(GRU, self).__init__()
+        self.input_size = input_dim
+        self.hidden_size = 64
+        self.output_size = output_dims
+
+        self.gru = nn.GRU(self.input_size, 64, 4, batch_first=True)
+        self.fc = nn.Linear(64, self.output_size)
+
+    def forward(self, x):
+        out, _ = self.gru(x)
+        out = self.fc(out)
+        return out
+
 class Linear(nn.Module):
     def __init__(self, input_dims=64, output_dims=2):
         super().__init__()
@@ -169,21 +224,33 @@ class Linear(nn.Module):
     def forward(self,x):
         return self.model(x)
 
+
+
+
 #test
 if __name__ == '__main__':
     x = torch.randn([2,100,52])
 
     resnet = Resnet()
+    cnn = CNN()
     lstm = LSTM()
+    rnn = RNN()
+    gru = GRU()
 
     configuration = BertConfig(max_position_embeddings=100, hidden_size=64, num_hidden_layers=6,num_attention_heads=8)
     csibert=CSIBERT(configuration)
 
     linear = Linear()
 
+    y = linear(cnn(x))
+    print(y.shape)
     y = linear(resnet(x))
     print(y.shape)
     y = linear(lstm(x))
+    print(y.shape)
+    y = linear(rnn(x))
+    print(y.shape)
+    y = linear(gru(x))
     print(y.shape)
     y = linear(csibert(x))
     print(y.shape)
