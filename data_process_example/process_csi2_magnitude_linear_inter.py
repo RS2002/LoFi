@@ -1,5 +1,6 @@
 import numpy as np
 import pickle
+import pandas as pd
 
 
 result=[]
@@ -8,15 +9,24 @@ loacl_gap=10000
 
 def process_time(timestamp):
     t = timestamp.split()
-    # print(t)
     t = t[-1].split(":")
     h = float(t[0])
     m = float(t[1])
     t = t[-1].split(".")
     s = float(t[0])
     ms = float(t[1])
-    # print(h,m,s,ms)
     return h * 60 * 60 * 100 + m * 60 * 100 + s * 100 + ms
+
+def interpolate_data(original_data):
+    data_interpolate = np.copy(original_data)
+
+    # 对数据进行插值处理
+    for j in range(original_data.shape[1]):
+        series = pd.Series(original_data[:, j])
+        series.interpolate(method='linear', inplace=True)
+        data_interpolate[:, j] = series.values
+
+    return data_interpolate
 
 
 with open("./csi_data.pkl", 'rb') as f:
@@ -61,16 +71,21 @@ for data in csi:
             last_local = local
             last_glob = glob
 
+
+    current_magnitude = np.array(current_magnitude)
+    current_magnitude[current_magnitude == -1000] = np.nan
+    current_magnitude = interpolate_data(current_magnitude)
     print(len(current_magnitude))
-    # print(np.max(global_timestamp))
+
+
     result.append({
         'time': np.array(current_timestamp),
         'global_time': np.array(global_timestamp),
         'people': people,
-        'magnitude': np.array(current_magnitude),
+        'magnitude': current_magnitude,
         'phase': np.array(current_phase)
     })
 
-output_file = './data_sequence.pkl'
+output_file = './data_sequence_linear.pkl'
 with open(output_file, 'wb') as f:
     pickle.dump(result, f)

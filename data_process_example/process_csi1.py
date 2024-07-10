@@ -3,7 +3,10 @@ import pickle
 import os
 import pandas as pd
 
-root="./csi"
+# root="./csi"
+root="/home/chentingwei/LoFi/csi_csv"
+
+
 data=[]
 csi_vaid_subcarrier_index = range(0, 52)
 

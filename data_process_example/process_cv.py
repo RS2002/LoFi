@@ -4,18 +4,20 @@ import cv2
 import numpy as np
 import pickle
 
-root="./cv"
+# root="./cv"
+root="/home/chentingwei/LoFi/lofi"
+
+
 # 加载 YOLO 模型
 net = cv2.dnn.readNet("./model/yolov3.weights", "./model/yolov3.cfg")
 # 获取输出层的名称
 layer_names = net.getLayerNames()
 output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
-# 选择四个参考点，依次为左上角、右上角、右下角、左下角
-# 这些点在实际世界中的坐标应已知
-src_points = np.array([[0, 0], [1, 0], [1, 1], [0, 1]], dtype="float32")
-# 在实际世界中这些点的坐标
-dst_points = np.array([[0, 0], [1, 0], [1, 1], [0, 1]], dtype="float32")
-# 计算透视变换矩阵
+
+src_points = np.array([[0, 0], [180, 0], [0, 480], [180, 480]], dtype="float32") # real world
+dst_points = np.array([[222, 210], [374, 209], [65, 458], [495, 451]], dtype="float32") # image world
+
+
 M = cv2.getPerspectiveTransform(src_points, dst_points)
 
 data=[]
@@ -80,10 +82,12 @@ for people in os.listdir(root):
         if "color" not in pic:
             continue
 
+        # print(pic)
         timestamp = pic.split("_")
         timestamp = timestamp[-1].split(".")
         timestamp = timestamp[0]
         timestamp = timestamp.split("-")
+        # print(timestamp)
         timestamp = float(timestamp[0]) * 60 * 60 * 100 + float(timestamp[1]) * 60 * 100 + float(timestamp[2]) * 100 + float(timestamp[3])
 
         img_path = os.path.join(path, pic)
@@ -93,14 +97,14 @@ for people in os.listdir(root):
         img_path_list.append(img_path)
         time_list.append(timestamp)
 
-        data.append({
-            'timestamp': np.array(timestamp),
-            'people_name': people,
-            'people': people_id,
-            'x': np.array(x_list),
-            'y': np.array(y_list),
-            'img_path': img_path_list
-        })
+    data.append({
+        'timestamp': np.array(time_list),
+        'people_name': people,
+        'people': people_id,
+        'x': np.array(x_list),
+        'y': np.array(y_list),
+        'img_path': img_path_list
+    })
     people_id += 1
 
 output_file = './gt_data.pkl'

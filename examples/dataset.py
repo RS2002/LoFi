@@ -1,6 +1,7 @@
 from torch.utils.data import Dataset
 import numpy as np
 import pickle
+import torch
 
 pad = -1000
 
@@ -50,8 +51,7 @@ class CSI_dataset(Dataset):
             timestamp = timestamp_full[l:r]
             x = x_full[l:r]
             y = y_full[l:r]
-
-        return magnitude,phase,x,y,timestamp
+        return magnitude,phase,torch.tensor(x),torch.tensor(y),timestamp
 
 def load_data(data_path="./data/wiloc.pkl", train_prop=0.9, train_num=2000, test_num=200, length=100):
     with open(data_path, 'rb') as f:
