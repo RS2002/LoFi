@@ -94,18 +94,18 @@ def load_data(data_path="./data/wiloc.pkl", train_prop=0.9, train_num=2000, test
         test_y = []
         for i in range(len(people_list)):
             num=magnitudes[i].shape[0]
-            train_num=int(num*train_prop)
+            num=int(num*train_prop)
 
-            train_timestamp.append(timestamp[i][:train_num])
-            train_magnitudes.append(magnitudes[i][:train_num])
-            train_phases.append(phases[i][:train_num])
-            train_x.append(x_list[i][:train_num])
-            train_y.append(y_list[i][:train_num])
+            train_timestamp.append(timestamp[i][:num])
+            train_magnitudes.append(magnitudes[i][:num])
+            train_phases.append(phases[i][:num])
+            train_x.append(x_list[i][:num])
+            train_y.append(y_list[i][:num])
 
-            test_timestamp.append(timestamp[i][train_num:])
-            test_magnitudes.append(magnitudes[i][train_num:])
-            test_phases.append(phases[i][train_num:])
-            test_x.append(x_list[i][:train_num])
-            test_y.append(y_list[i][:train_num])
+            test_timestamp.append(timestamp[i][num:])
+            test_magnitudes.append(magnitudes[i][num:])
+            test_phases.append(phases[i][num:])
+            test_x.append(x_list[i][num:])
+            test_y.append(y_list[i][num:])
         return CSI_dataset(train_magnitudes, train_phases, train_timestamp, train_x, train_y, num=train_num, length=length), CSI_dataset(test_magnitudes, test_phases, test_timestamp, test_x, test_y, num=test_num, length=length)
 

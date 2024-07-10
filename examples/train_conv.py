@@ -21,7 +21,7 @@ def get_args():
 
     parser.add_argument("--cpu", action="store_true",default=False)
     parser.add_argument("--cuda", type=str, default='0')
-    parser.add_argument('--lr', type=float, default=0.0005)
+    parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--epoch', type=int, default=30)
     args = parser.parse_args()
     return args
@@ -58,6 +58,12 @@ def iteration(data_loader,device,model,cls,optim,train=True,norm=False,correlati
         output=cls(model(magnitude))
         x_hat = output[...,0]
         y_hat = output[...,1]
+
+        # print(x)
+        # print(x_hat)
+
+        # print(y)
+        # print(y_hat)
 
         loss = loss_func(x_hat, x) + loss_func(y_hat,y)
 
@@ -114,8 +120,8 @@ if __name__ == '__main__':
         else:
             loss_epoch += 1
         if loss_epoch >= args.epoch:
-            print("Best Epoch {:}".format(loss_epoch))
             break
+        print("Best Epoch {:}".format(loss_epoch))
     print("Best Loss {:}".format(best_loss))
 
 

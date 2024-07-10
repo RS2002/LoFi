@@ -16,7 +16,7 @@ def get_args():
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--max_len', type=int, default=100)
     parser.add_argument("--carrier_dim", type=int, default=52)
-    parser.add_argument('--predic_len', type=int, default=100)
+    parser.add_argument('--prediction_len', type=int, default=1)
 
     parser.add_argument("--data_path",type=str,default="./data/wiloc_linear.pkl")
     parser.add_argument('--train_prop', type=float, default=0.9)
@@ -53,8 +53,8 @@ def iteration(data_loader,device,model,cls,optim,train=True,prediction_len=1):
         timestamp = timestamp.float().to(device)
         x = x.float().to(device)
         y = y.float().to(device)
-        x = x[:,-prediction_len:]
-        y = y[:,-prediction_len:]
+        x = x[:,:-prediction_len]
+        y = y[:,:-prediction_len]
 
 
         input = copy.deepcopy(magnitude)
@@ -90,12 +90,12 @@ if __name__ == '__main__':
     args = get_args()
     device_name = "cuda:" + args.cuda
     device = torch.device(device_name if torch.cuda.is_available() and not args.cpu else 'cpu')
-    bertconfig=BertConfig(max_position_embeddings=args.max_len, hidden_size=64,num_hidden_layers=6,num_attention_heads=8,intermediate_size=512)
+    bertconfig=BertConfig(max_position_embeddings=args.max_len, hidden_size=128,num_hidden_layers=6,num_attention_heads=8,intermediate_size=512)
     model=CSIBERT(bertconfig,args.carrier_dim).to(device)
     if not args.no_pretrain:
         model.load_state_dict(torch.load(args.path))
 
-    cls = Linear(output_dims=2).to(device)
+    cls = Linear(input_dims=128, output_dims=2).to(device)
     train_data, test_data = load_data(data_path=args.data_path, train_prop=args.train_prop, train_num=2000, test_num=200, length=args.max_len)
     train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
     test_loader = DataLoader(test_data, batch_size=args.batch_size, shuffle=True)
@@ -129,7 +129,7 @@ if __name__ == '__main__':
         if last_loss < best_last_loss:
             best_last_loss = last_loss
         if loss_epoch >= args.epoch:
-            print("Best Epoch {:}".format(loss_epoch))
             break
+        print("Best Epoch {:}".format(loss_epoch))
     print("Best Loss {:}".format(best_loss))
     print("Best Last Loss {:}".format(best_last_loss))

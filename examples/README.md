@@ -2,5 +2,5 @@
 
 ![](../img/conv.png)
 
-![](../img/time.png)
+![](../img/series.png)
 

@@ -6,27 +6,19 @@ import torch.nn.functional as F
 
 
 class Resnet(nn.Module):
-    def __init__(self, output_dims=64, channel=1, pretrained=True, norm=False):
+    def __init__(self, output_dims=64, channel=1, pretrained=True):
         super().__init__()
         self.model=models.resnet18(pretrained)
         self.model.conv1 = nn.Conv2d(channel, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.model.fc = nn.Linear(self.model.fc.in_features, output_dims)
-        self.norm=norm
-        self.batch_norm=nn.BatchNorm2d(1)
+        # self.batch_norm=nn.BatchNorm2d(1)
         self.channel = channel
 
     def forward(self,x):
         if x.shape[1]!=self.channel:
             x = torch.unsqueeze(x,dim=1)
-
-        if self.norm:
-            mean=torch.mean(x,dim=-2,keepdim=True)
-            std=torch.std(x,dim=-2,keepdim=True)
-            y=(x-mean)/(std+1e-8)
-        else:
-            y=x
-        y=self.batch_norm(y)
-        return self.model(y)
+        # x=self.batch_norm(x)
+        return self.model(x)
 
 class CNN(nn.Module):
     def __init__(self,channel=1, class_num=64):
@@ -218,7 +210,8 @@ class Linear(nn.Module):
             nn.ReLU(),
             nn.Linear(64,64),
             nn.ReLU(),
-            nn.Linear(64, output_dims)
+            nn.Linear(64, output_dims),
+            nn.ReLU()
         )
 
     def forward(self,x):

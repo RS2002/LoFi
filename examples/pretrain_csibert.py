@@ -19,7 +19,7 @@ def get_args():
     parser.add_argument("--carrier_dim", type=int, default=52)
     parser.add_argument("--max_len", type=int, default=100)
 
-    parser.add_argument('--lr', type=float, default=0.0005)
+    parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--epoch', type=int, default=30)
     parser.add_argument('--data_path', type=str, default="./data/wiloc.pkl")
     parser.add_argument('--train_prop', type=float, default=0.9)
@@ -164,7 +164,7 @@ def main():
         device_name = "cpu"
     device = torch.device(device_name)
 
-    bertconfig=BertConfig(max_position_embeddings=args.max_len, hidden_size=64,num_hidden_layers=6,num_attention_heads=8,intermediate_size=512)
+    bertconfig=BertConfig(max_position_embeddings=args.max_len, hidden_size=128,num_hidden_layers=6,num_attention_heads=8,intermediate_size=512)
     csibert=CSIBERT(bertconfig,args.carrier_dim).to(device)
     csibert_dis=CSIBERT(bertconfig,args.carrier_dim).to(device)
     if len(cuda_devices) > 1 and not args.cpu:

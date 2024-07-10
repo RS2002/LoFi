@@ -13,7 +13,7 @@ def get_args():
     parser.add_argument('--max_len', type=int, default=100)
     parser.add_argument("--carrier_dim", type=int, default=52)
     parser.add_argument("--norm", action="store_true",default=False)
-    parser.add_argument('--predic_len', type=int, default=100)
+    parser.add_argument('--prediction_len', type=int, default=1)
 
 
     parser.add_argument("--data_path",type=str,default="./data/wiloc_linear.pkl")
@@ -23,7 +23,7 @@ def get_args():
 
     parser.add_argument("--cpu", action="store_true",default=False)
     parser.add_argument("--cuda", type=str, default='0')
-    parser.add_argument('--lr', type=float, default=0.0005)
+    parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--epoch', type=int, default=30)
     args = parser.parse_args()
     return args
@@ -61,8 +61,15 @@ def iteration(data_loader,device,model,cls,optim,train=True,norm=False,predictio
 
 
         output=cls(model(magnitude))
-        x_hat = output[...,:-prediction_len,0]
-        y_hat = output[...,:-prediction_len,1]
+        x_hat = output[...,-prediction_len:,0]
+        y_hat = output[...,-prediction_len:,1]
+
+        # print(x_hat[0])
+        # print(x[0])
+
+
+        # print(x_hat.shape)
+        # print(x.shape)
 
         loss = loss_func(x_hat, x) + loss_func(y_hat,y)
         last_loss = loss_func(x_hat[:,-1], x[:,-1]) + loss_func(y_hat[:,-1], y[:,-1])
@@ -131,8 +138,9 @@ if __name__ == '__main__':
         if last_loss < best_last_loss:
             best_last_loss = last_loss
         if loss_epoch >= args.epoch:
-            print("Best Epoch {:}".format(loss_epoch))
             break
+        print("Best Epoch {:}".format(loss_epoch))
+
     print("Best Loss {:}".format(best_loss))
     print("Best Last Loss {:}".format(best_last_loss))
 
