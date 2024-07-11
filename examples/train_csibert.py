@@ -47,6 +47,9 @@ def iteration(data_loader,device,model,cls,optim,train=True,prediction_len=1):
     loss_list = []
     last_loss_list = []
 
+    mean_list = []
+    std_list = []
+
     pbar = tqdm.tqdm(data_loader, disable=False)
     for magnitude, _, x, y, timestamp in pbar:
         magnitude = magnitude.float().to(device)
@@ -75,6 +78,9 @@ def iteration(data_loader,device,model,cls,optim,train=True,prediction_len=1):
         loss = loss_func(x_hat, x) + loss_func(y_hat,y)
         last_loss = loss_func(x_hat[:,-1], x[:,-1]) + loss_func(y_hat[:,-1], y[:,-1])
 
+        mean_list.append(torch.mean(torch.sqrt((x_hat-x)**2+(y_hat-y)**2)).item())
+        std_list.append(torch.std(torch.sqrt((x_hat-x)**2+(y_hat-y)**2)).item())
+
         if train:
             model.zero_grad()
             loss.backward()
@@ -84,7 +90,7 @@ def iteration(data_loader,device,model,cls,optim,train=True,prediction_len=1):
         loss_list.append(loss.item())
         last_loss_list.append(last_loss.item())
 
-    return np.mean(loss_list), np.mean(last_loss_list)
+    return np.mean(loss_list), np.mean(last_loss_list), np.mean(mean_list), np.mean(std_list)
 
 if __name__ == '__main__':
     args = get_args()
@@ -106,16 +112,18 @@ if __name__ == '__main__':
     best_last_loss = 1e8
     loss_epoch = 0
     j = 0
+    best_mean = 1e8
+    best_std = 1e8
 
     while True:
         j += 1
-        loss, last_loss = iteration(train_loader, device, model, cls, optim, train=True, prediction_len=args.prediction_len)
-        log = "Epoch {:}, Train Loss {:06f}, Train Last Loss {:06f}".format(j, loss, last_loss)
+        loss, last_loss, mean, std = iteration(train_loader, device, model, cls, optim, train=True, prediction_len=args.prediction_len)
+        log = "Epoch {:}, Train Loss {:06f}, Train Last Loss {:06f}, Train Mean {:06f}, Train Std {:06f}".format(j, loss, last_loss, mean, std)
         print(log)
         with open("CSIBERT.txt", 'a') as file:
             file.write(log)
-        loss, last_loss = iteration(test_loader, device, model, cls, optim, train=False, prediction_len=args.prediction_len)
-        log = "Test Loss {:06f}, Test Last Loss {:06f}".format(loss, last_loss)
+        loss, last_loss, mean, std = iteration(test_loader, device, model, cls, optim, train=False, prediction_len=args.prediction_len)
+        log = "Test Loss {:06f}, Test Last Loss {:06f}, Test Mean {:06f}, Test Std {:06f}".format(loss, last_loss, mean, std)
         print(log)
         with open("CSIBERT.txt", 'a') as file:
             file.write(log + "\n")
@@ -128,8 +136,14 @@ if __name__ == '__main__':
             loss_epoch += 1
         if last_loss < best_last_loss:
             best_last_loss = last_loss
+        if mean < best_mean:
+            best_mean = mean
+        if std < best_std:
+            best_std = std
         if loss_epoch >= args.epoch:
             break
         print("Best Epoch {:}".format(loss_epoch))
     print("Best Loss {:}".format(best_loss))
     print("Best Last Loss {:}".format(best_last_loss))
+    print("Best Mean {:}".format(best_mean))
+    print("Best Std {:}".format(best_std))

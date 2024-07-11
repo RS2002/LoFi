@@ -39,7 +39,8 @@ def iteration(data_loader,device,model,cls,optim,train=True,norm=False,correlati
 
     loss_func=nn.MSELoss()
     loss_list = []
-
+    mean_list = []
+    std_list = []
     pbar = tqdm.tqdm(data_loader, disable=False)
     for magnitude, _, x, y, _ in pbar:
         magnitude = magnitude.float().to(device)
@@ -74,8 +75,9 @@ def iteration(data_loader,device,model,cls,optim,train=True,norm=False,correlati
             optim.step()
 
         loss_list.append(loss.item())
-
-    return np.mean(loss_list)
+        mean_list.append(torch.mean(torch.sqrt((x_hat-x)**2+(y_hat-y)**2)).item())
+        std_list.append(torch.std(torch.sqrt((x_hat-x)**2+(y_hat-y)**2)).item())
+    return np.mean(loss_list), np.mean(mean_list), np.mean(std_list)
 
 if __name__ == '__main__':
     args = get_args()
@@ -99,16 +101,17 @@ if __name__ == '__main__':
     best_loss = 1e8
     loss_epoch = 0
     j = 0
-
+    best_mean = 1e8
+    best_std = 1e8
     while True:
         j += 1
-        loss = iteration(train_loader, device, model, cls, optim, train=True, norm=args.norm, correlation=args.correlation)
-        log = "Epoch {:}, Train Loss {:06f}".format(j, loss)
+        loss, mean, std = iteration(train_loader, device, model, cls, optim, train=True, norm=args.norm, correlation=args.correlation)
+        log = "Epoch {:}, Train Loss {:06f}, Train Mean {:06f}, Train Std {:06f}".format(j, loss, mean, std)
         print(log)
         with open("log.txt", 'a') as file:
             file.write(log)
-        loss = iteration(test_loader, device, model, cls, optim, train=False, norm=args.norm, correlation=args.correlation)
-        log = "Test Loss {:06f}".format(loss)
+        loss, mean, std = iteration(test_loader, device, model, cls, optim, train=False, norm=args.norm, correlation=args.correlation)
+        log = "Test Loss {:06f}, Test Mean {:06f}, Test Std {:06f}".format(loss, mean, std)
         print(log)
         with open("log.txt", 'a') as file:
             file.write(log + "\n")
@@ -119,9 +122,14 @@ if __name__ == '__main__':
             torch.save(model.state_dict(), "model.pth")
         else:
             loss_epoch += 1
+        if mean < best_mean:
+            best_mean = mean
+        if std < best_std:
+            best_std = std
         if loss_epoch >= args.epoch:
             break
         print("Best Epoch {:}".format(loss_epoch))
     print("Best Loss {:}".format(best_loss))
-
+    print("Best Mean {:}".format(best_mean))
+    print("Best Std {:}".format(best_std))
 
