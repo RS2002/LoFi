@@ -14,6 +14,7 @@ def get_args():
     parser.add_argument("--carrier_dim", type=int, default=52)
     parser.add_argument("--correlation", action="store_true",default=False)
     parser.add_argument("--norm", action="store_true",default=False)
+    parser.add_argument("--ratio", action="store_true",default=False)
 
     parser.add_argument("--data_path",type=str,default="./data/wiloc_linear.pkl")
     parser.add_argument('--train_prop', type=float, default=0.9)
@@ -27,7 +28,7 @@ def get_args():
     return args
 
 
-def iteration(data_loader,device,model,cls,optim,train=True,norm=False,correlation=False):
+def iteration(data_loader,device,model,cls,optim,train=True,norm=False,correlation=False,ratio=False):
     if train:
         model.train()
         cls.train()
@@ -39,15 +40,22 @@ def iteration(data_loader,device,model,cls,optim,train=True,norm=False,correlati
 
     loss_func=nn.MSELoss()
     loss_list = []
-    mean_list = []
     std_list = []
     pbar = tqdm.tqdm(data_loader, disable=False)
     for magnitude, _, x, y, _ in pbar:
         magnitude = magnitude.float().to(device)
         x = x.float().to(device)
         y = y.float().to(device)
-        x = x[:,-1]
-        y = y[:,-1]
+
+        # x = x[:,-1]
+        # y = y[:,-1]
+
+        # l = x.shape[-1]
+        # x = x[:,l//2]
+        # y = y[:,l//2]
+
+        x = torch.mean(x,dim=-1)
+        y = torch.mean(y,dim=-1)
 
         if norm:
             mean = torch.mean(magnitude, dim=-2, keepdim=True)
@@ -55,18 +63,17 @@ def iteration(data_loader,device,model,cls,optim,train=True,norm=False,correlati
             magnitude = (magnitude - mean) / (std + 1e-8)
         if correlation:
             magnitude = torch.matmul(magnitude.transpose(-1, -2), magnitude)
+        if ratio:
+            magnitude1 = magnitude[:,:-1,:]
+            magnitude2 = magnitude[:,1:,:]
+            magnitude = magnitude2/(magnitude1+1e-8)
 
         output=cls(model(magnitude))
         x_hat = output[...,0]
         y_hat = output[...,1]
 
-        # print(x)
-        # print(x_hat)
-
-        # print(y)
-        # print(y_hat)
-
         loss = loss_func(x_hat, x) + loss_func(y_hat,y)
+
 
         if train:
             model.zero_grad()
@@ -105,12 +112,12 @@ if __name__ == '__main__':
     best_std = 1e8
     while True:
         j += 1
-        loss, mean, std = iteration(train_loader, device, model, cls, optim, train=True, norm=args.norm, correlation=args.correlation)
-        log = "Epoch {:}, Train Loss {:06f}, Train Mean {:06f}, Train Std {:06f}".format(j, loss, mean, std)
+        loss, mean, std = iteration(train_loader, device, model, cls, optim, train=True, norm=args.norm, correlation=args.correlation, ratio=args.ratio)
+        log = "Epoch {:} | Train Loss {:06f}, Train Mean {:06f}, Train Std {:06f} | ".format(j, loss, mean, std)
         print(log)
         with open("log.txt", 'a') as file:
             file.write(log)
-        loss, mean, std = iteration(test_loader, device, model, cls, optim, train=False, norm=args.norm, correlation=args.correlation)
+        loss, mean, std = iteration(test_loader, device, model, cls, optim, train=False, norm=args.norm, correlation=args.correlation, ratio=args.ratio)
         log = "Test Loss {:06f}, Test Mean {:06f}, Test Std {:06f}".format(loss, mean, std)
         print(log)
         with open("log.txt", 'a') as file:

@@ -4,7 +4,6 @@ import torch
 from transformers import BertModel,BertConfig
 import torch.nn.functional as F
 
-
 class Resnet(nn.Module):
     def __init__(self, output_dims=64, channel=1, pretrained=True):
         super().__init__()
@@ -217,6 +216,24 @@ class Linear(nn.Module):
     def forward(self,x):
         return self.model(x)
 
+class Linear_attention(nn.Module):
+    def __init__(self, input_dims=64, output_dims=2, da=128, r=4):
+        super().__init__()
+        self.attention = SelfAttention(input_dims, da, r)
+        self.classifier = nn.Sequential(
+            nn.Linear(input_dims * r, input_dims * r // 2),
+            nn.ReLU(),
+            nn.Linear(input_dims * r // 2, output_dims),
+            nn.ReLU()
+        )
+
+
+    def forward(self,x):
+        attn_mat = self.attention(x)
+        m = torch.bmm(attn_mat, x)
+        flatten = m.view(m.size()[0], -1)
+        res = self.classifier(flatten)
+        return res
 
 
 
@@ -247,4 +264,3 @@ if __name__ == '__main__':
     print(y.shape)
     y = linear(csibert(x))
     print(y.shape)
-

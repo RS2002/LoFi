@@ -37,6 +37,6 @@ python pretrain_csibert.py --GAN --data_path <processed data path>
 And then finetune it as:
 
 ```shell
-python train_csibert.py --path <pre-trained model path> --data_path <processed data path>
+python finetune_csibert.py --path <pre-trained model path> --data_path <processed data path>
 ```
 

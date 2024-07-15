@@ -51,7 +51,7 @@ class CSI_dataset(Dataset):
             timestamp = timestamp_full[l:r]
             x = x_full[l:r]
             y = y_full[l:r]
-        return magnitude,phase,torch.tensor(x),torch.tensor(y),timestamp
+        return magnitude,phase,torch.tensor(x)/100,torch.tensor(y)/100,timestamp
 
 def load_data(data_path="./data/wiloc.pkl", train_prop=0.9, train_num=2000, test_num=200, length=100):
     with open(data_path, 'rb') as f:
