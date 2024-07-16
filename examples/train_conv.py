@@ -41,6 +41,7 @@ def iteration(data_loader,device,model,cls,optim,train=True,norm=False,correlati
     loss_func=nn.MSELoss()
     loss_list = []
     std_list = []
+    mean_list = []
     pbar = tqdm.tqdm(data_loader, disable=False)
     for magnitude, _, x, y, _ in pbar:
         magnitude = magnitude.float().to(device)

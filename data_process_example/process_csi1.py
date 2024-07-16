@@ -26,7 +26,7 @@ for people in os.listdir(root):
     for file in os.listdir(path):
         if file[-3:] != "csv":
             continue
-        print(file)
+        # print(file)
         df = pd.read_csv(os.path.join(path,file))
         df.dropna(inplace=True)
         df['data'] = df['data'].apply(lambda x: eval(x))

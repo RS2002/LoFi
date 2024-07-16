@@ -2,9 +2,8 @@ import pickle
 import numpy as np
 
 with open("./data_sequence.pkl", 'rb') as f:
-    data_csi = pickle.load(f)
 # with open("./data_sequence_linear.pkl", 'rb') as f:
-#     data_csi = pickle.load(f)
+    data_csi = pickle.load(f)
 with open("./gt_data.pkl", 'rb') as f:
     data_cv = pickle.load(f)
 
@@ -18,12 +17,16 @@ for k in range(len(data_csi)):
     y = cv['y']
     img_path = np.array(cv['img_path'])
     time_cv = cv['timestamp']
+    print(cv['people_name'])
 
     indices = np.argsort(time_cv)
     x = x[indices]
     y = y[indices]
     img_path = img_path[indices]
     time_cv = time_cv[indices]
+
+    print(x)
+    print(y)
 
 
     csi_time = csi['global_time']
