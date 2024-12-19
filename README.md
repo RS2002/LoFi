@@ -1,6 +1,6 @@
 # LoFi: Wi-Fi Sensing Dataset for Location \& Tracing with ESP32-S3
 
-**Article:** Zijian Zhao, Tingwei Chen, Fanyi Meng, Zhijie Cai, Hang Li, Xiaoyang Li, Guangxu Zhu\*, “LoFi: Vision-Aided Label Generator for Wi-Fi Location and Tracing” (under way)
+**Article:** Zijian Zhao, Tingwei Chen, Fanyi Meng, Zhijie Cai, Hang Li, Xiaoyang Li, Guangxu Zhu\*, “[LoFi: Vision-Aided Label Generator for Wi-Fi Localization and Tracking](https://arxiv.org/abs/2412.05074)” (under way)
 
 
 
@@ -61,4 +61,17 @@ We obtain ``csi_data.pkl`` by running ``./data/data_process_example/process_csi1
 We obtain ``data_sequence.pkl`` by running  ``./data/data_process_example/process_csi2.py`` (split CSI data by person)
 We obtain ``gt_data.pkl`` by running  ``./data/data_process_example/process_cv.py`` (extract position coordinates from images)
 We obtain ``wiloc.pkl`` by running  ``./data/data_process_example/combine_csi_cv.py`` (combine CSI data and ground truth)
+
+
+
+## 5. Reference
+
+```
+@article{zhao2024lofi,
+  title={LoFi: Vision-Aided Label Generator for Wi-Fi Localization and Tracking},
+  author={Zhao, Zijian and Chen, Tingwei and Meng, Fanyi and Cai, Zhijie and Li, Hang and Li, Xiaoyang and Zhu, Guangxu},
+  journal={arXiv preprint arXiv:2412.05074},
+  year={2024}
+}
+```
 
