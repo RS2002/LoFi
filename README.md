@@ -1,6 +1,6 @@
 # LoFi: Wi-Fi Sensing Dataset for Localization \& Tracing with ESP32-S3
 
-**Article:** Zijian Zhao, Tingwei Chen, Fanyi Meng, Zhijie Cai, Hang Li, Xiaoyang Li, Guangxu Zhu\*, “[LoFi: Vision-Aided Label Generator for Wi-Fi Localization and Tracking](https://arxiv.org/abs/2412.05074)” (under review, IEEE Wireless Communications Letters (WCL))
+**Article:** Zijian Zhao, Tingwei Chen, Fanyi Meng, Zhijie Cai, Hang Li, Xiaoyang Li, Guangxu Zhu\*, “[LoFi: Vision-Aided Label Generator for Wi-Fi Localization and Tracking](https://arxiv.org/abs/2412.05074)” (under review)
 
 
 
